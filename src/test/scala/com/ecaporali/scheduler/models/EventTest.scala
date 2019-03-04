@@ -60,19 +60,19 @@ class EventTest extends Specification {
 
       "return True when event start/end is longer than free time start/end" in {
         val freeTime = FreeTime(eventStart.plusMinutes(5), eventFinish.minusMinutes(5))
-        val finishBetween = event.isStartBeforeAndFinishAfterFreeTime(freeTime)
+        val finishBetween = event.isOnlyWithinFreeTime(freeTime)
         finishBetween must beTrue
       }
 
       "return False when event end time is less than free time end time" in {
         val freeTime = FreeTime(eventStart, eventFinish.plusMinutes(5))
-        val finishBetween = event.isStartBeforeAndFinishAfterFreeTime(freeTime)
+        val finishBetween = event.isOnlyWithinFreeTime(freeTime)
         finishBetween must beFalse
       }
 
       "return False when event start time is greater than free time start time" in {
         val freeTime = FreeTime(eventStart.minusMinutes(5), eventFinish)
-        val finishBetween = event.isStartBeforeAndFinishAfterFreeTime(freeTime)
+        val finishBetween = event.isOnlyWithinFreeTime(freeTime)
         finishBetween must beFalse
       }
     }

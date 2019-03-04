@@ -20,13 +20,12 @@ sealed class ConcertRuleService(concertStart: LocalDateTime, concertEnd: LocalDa
     val event = performance.event
     val plan = createPlan(performance) _
 
-    // TODO: refactor the following code
-    val availablePlans = findAvailableTimes(plans).flatMap {
-      case f@FreeTime(_, _) if event.isStartWithinFreeTime(f) && event.isFinishWithinFreeTime(f) => Some(plan(event.start, event.finish))
-      case f@FreeTime(_, finish) if !event.isOutsideFreeTimeRange(f) && event.isStartWithinFreeTime(f) && !event.isFinishWithinFreeTime(f) => Some(plan(event.start, finish))
-      case f@FreeTime(start, _) if !event.isOutsideFreeTimeRange(f) && !event.isStartWithinFreeTime(f) && event.isFinishWithinFreeTime(f) => Some(plan(start, event.finish))
-      case f@FreeTime(start, finish) if event.isStartBeforeAndFinishAfterFreeTime(f) => Some(plan(start, finish))
-      case _ => None
+    val availablePlans = findAvailableTimes(plans).flatMap { time =>
+      if (event.isWithinFreeTime(time)) Some(plan(event.start, event.finish))
+      else if (event.isUntilEndFreeTime(time)) Some(plan(event.start, time.finish))
+      else if (event.isAfterStartFreeTime(time)) Some(plan(time.start, event.finish))
+      else if (event.isOnlyWithinFreeTime(time)) Some(plan(time.start, time.finish))
+      else None
     }
 
     plans ++ availablePlans
@@ -36,10 +35,10 @@ sealed class ConcertRuleService(concertStart: LocalDateTime, concertEnd: LocalDa
     Plan(start, finish, performance)
 
   private def findAvailableTimes(plans: Seq[Plan]): Seq[FreeTime] = {
-
+    val groupSize = 2
     val maybeFreeTimeAtStart = findFreeTimeAtStart(concertStart, plans.head.start)
     val maybeFreeTimeAtEnd = findFreeTimeAtEnd(concertEnd, plans.reverse.head.finish)
-    val inBetweenFreeTimes = plans.sliding(2).flatMap {
+    val inBetweenFreeTimes = plans.sliding(groupSize).flatMap {
       case first +: second +: _ => findFreeTimeInTheMiddle(first.finish, second.start)
       case _ +: Nil => None
     }.toVector
